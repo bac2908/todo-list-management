@@ -8,8 +8,13 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Objects;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -21,16 +26,25 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    @NotBlank
+    @Size(max = 120)
     @Column(nullable = false, length = 120)
     private String title;
 
+    @Size(max = 500)
     @Column(length = 500)
     private String description;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TaskStatus status = TaskStatus.PENDING;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TaskPriority priority = TaskPriority.MEDIUM;
@@ -50,12 +64,16 @@ public class Task {
         return id;
     }
 
+    public Long getVersion() {
+        return version;
+    }
+
     public String getTitle() {
         return title;
     }
 
     public void setTitle(String title) {
-        this.title = title;
+        this.title = Objects.requireNonNull(title, "title must not be null");
     }
 
     public String getDescription() {
@@ -71,7 +89,7 @@ public class Task {
     }
 
     public void setStatus(TaskStatus status) {
-        this.status = status;
+        this.status = Objects.requireNonNull(status, "status must not be null");
     }
 
     public TaskPriority getPriority() {
@@ -79,7 +97,7 @@ public class Task {
     }
 
     public void setPriority(TaskPriority priority) {
-        this.priority = priority;
+        this.priority = Objects.requireNonNull(priority, "priority must not be null");
     }
 
     public LocalDate getDueDate() {

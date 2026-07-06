@@ -25,13 +25,11 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  
-  // Theme state
+
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('todo-theme') || 'dark';
   });
 
-  // Toggle theme on body class
   useEffect(() => {
     document.body.className = theme;
     localStorage.setItem('todo-theme', theme);
@@ -77,10 +75,10 @@ function App() {
     try {
       if (editingTask) {
         await updateTask(editingTask.id, formData);
-        setNotice('Task updated successfully.');
+        setNotice('Task updated.');
       } else {
         await createTask(formData);
-        setNotice('Task created successfully.');
+        setNotice('Task created.');
       }
 
       setEditingTask(null);
@@ -111,7 +109,7 @@ function App() {
 
     try {
       await deleteTask(task.id);
-      setNotice('Task deleted successfully.');
+      setNotice('Task deleted.');
       await loadTasks(pageData.content.length === 1 && page > 0 ? page - 1 : page);
     } catch (err) {
       setError(err.message);
@@ -122,15 +120,15 @@ function App() {
     <main className="app-shell">
       <section className="topbar">
         <div>
-          <span className="eyebrow">Intern Developer Test</span>
+          <span className="eyebrow">Task workspace</span>
           <h1>Todo List Management</h1>
         </div>
         <div className="topbar-actions">
-          <button 
-            className="theme-toggle-btn" 
-            type="button" 
+          <button
+            className="theme-toggle-btn"
+            type="button"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -148,7 +146,7 @@ function App() {
             <span>Total tasks</span>
           </div>
         </div>
-        
+
         <div className="summary-card">
           <CheckCircle2 size={22} />
           <div className="stats-info">

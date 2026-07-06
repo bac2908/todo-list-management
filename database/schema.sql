@@ -6,6 +6,7 @@ USE todo_list_db;
 
 CREATE TABLE IF NOT EXISTS tasks (
     id BIGINT NOT NULL AUTO_INCREMENT,
+    version BIGINT NOT NULL DEFAULT 0,
     title VARCHAR(120) NOT NULL,
     description VARCHAR(500) NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',

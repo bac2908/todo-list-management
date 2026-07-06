@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 public record TaskResponse(
         Long id,
+        Long version,
         String title,
         String description,
         TaskStatus status,

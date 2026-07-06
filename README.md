@@ -1,73 +1,58 @@
-# Todo List Management App
+# Todo List Management
 
-Full-stack Todo List Management application for an Intern Developer test.
+A small full-stack todo app for practicing a normal CRUD flow with React,
+Spring Boot and MySQL. I kept the scope simple, but tried to make the parts
+that reviewers usually check easy to run and easy to read.
 
-## Tech Stack
+## Stack
 
-- Frontend: React.js, Vite, CSS
-- Backend: Java 21, Spring Boot, Spring Web, Spring Data JPA, Bean Validation
-- Database: MySQL
-- API Docs: Swagger UI with springdoc-openapi
-- Extra: Docker Compose, Flyway migration, Postman collection, README
+- Frontend: React, Vite, plain CSS
+- Backend: Java 21, Spring Boot, Spring Web, Spring Data JPA
+- Database: MySQL 8
+- API docs: Swagger UI / OpenAPI
+- Other: Docker Compose, Flyway, Postman collection, basic unit tests
 
 ## Features
 
-- View task list with pagination and sorting.
-- Create a new task.
-- Update task information.
-- Delete a task with confirmation.
-- Mark task as completed or pending.
+- Create, update and delete tasks.
+- Mark a task as pending or completed.
 - Search by title or description.
 - Filter by status and priority.
-- Validate invalid input.
-- Show loading, empty, success, and error states.
-- Responsive UI.
+- Pagination from the backend API.
+- Sort by newest task first.
+- Highlight tasks that are due today, due soon or overdue.
+- Validate invalid input on both frontend and backend.
+- Show loading, empty, success and error states.
+- Responsive layout for desktop and smaller screens.
 
 ## Project Structure
 
 ```txt
 todo-list-management/
   backend/                 Spring Boot REST API
-  frontend/                React client
-  database/                Manual schema and seed SQL
-  docs/                    System design document
+  frontend/                React application
+  database/                Manual SQL and demo seed data
+  docs/                    Short technical notes
   postman/                 Postman collection
   docker-compose.yml       MySQL + backend + frontend
 ```
 
-## Prerequisites
+## Run With Docker
 
-For Docker run:
+Start Docker Desktop first.
 
-- Docker Desktop
+The backend image copies the jar from `backend/target`, so build it once before
+starting Docker Compose:
 
-For local run:
-
-- Java 21
-- Maven 3.9+
-- Node.js 20+
-- MySQL 8+
-
-## Run Full App With Docker
-
-Start Docker Desktop first, then run:
-
-```bash
+```powershell
 cd backend
-set MAVEN_OPTS=-Xmx256m -XX:MaxMetaspaceSize=160m
+$env:MAVEN_OPTS="-Xmx256m -XX:MaxMetaspaceSize=160m"
 mvn -DskipTests clean package
 cd ..
 docker compose up --build -d
 ```
 
-Run tests separately when needed:
-
-```bash
-cd backend
-mvn test
-```
-
-After all containers are running:
+Open:
 
 ```txt
 Frontend:   http://localhost:3000
@@ -77,65 +62,50 @@ OpenAPI:    http://localhost:8080/api-docs
 MySQL:      localhost:3307
 ```
 
-Docker services:
+Useful commands:
 
-| Service | Container | Port | Note |
-| --- | --- | --- | --- |
-| mysql | `todo-list-mysql` | `3307:3306` | MySQL database |
-| backend | `todo-list-backend` | `8080:8080` | Spring Boot REST API |
-| frontend | `todo-list-frontend` | `3000:80` | React app served by Nginx |
+```powershell
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f mysql
+docker compose down
+```
 
-Docker database credentials:
+Reset all Docker data:
+
+```powershell
+docker compose down -v
+```
+
+## Demo Data
+
+Flyway creates and migrates the `tasks` table automatically when the backend
+starts. When using Docker, do not run `database/schema.sql` manually; keep it as
+a reference script for local review. To load demo tasks for checking pagination:
+
+```powershell
+Get-Content -Raw database\seed.sql | docker exec -i todo-list-mysql mysql -uroot -proot todo_list_db
+```
+
+The seed file inserts 18 tasks. The frontend requests 8 tasks per page, so the
+pagination can be tested right away.
+
+Docker database connection:
 
 ```txt
 Database: todo_list_db
 Username: root
 Password: root
-Host from backend container: mysql
-Host from your machine: localhost
-Port from your machine: 3307
+Backend host: mysql:3306
+Local host: localhost:3307
 ```
 
-The backend connects to MySQL inside Docker with:
+## Run Locally
 
-```txt
-jdbc:mysql://mysql:3306/todo_list_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-```
+Use this option if MySQL is already running on your machine.
 
-The frontend calls the backend through:
-
-```txt
-http://localhost:8080/api
-```
-
-Useful Docker commands:
-
-```bash
-docker compose ps
-docker compose logs -f backend
-docker compose logs -f mysql
-docker compose logs -f frontend
-docker compose down
-```
-
-Reset database data:
-
-```bash
-docker compose down -v
-docker compose up --build
-```
-
-Import seed data into Docker MySQL:
-
-```bash
-docker exec -i todo-list-mysql mysql -uroot -proot todo_list_db < database/seed.sql
-```
-
-## Run Locally Without Docker
-
-Use this option only if you already have MySQL running locally, for example from AMpps or XAMPP.
-
-Create an empty database:
+Create the database:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS todo_list_db
@@ -143,88 +113,43 @@ CREATE DATABASE IF NOT EXISTS todo_list_db
     COLLATE utf8mb4_unicode_ci;
 ```
 
-The backend uses Flyway, so the `tasks` table is created automatically when the app starts.
-
 Run backend:
 
-```bash
+```powershell
 cd backend
 mvn spring-boot:run
 ```
 
-Default backend config:
+Default local database config:
 
 ```txt
-Server: http://localhost:8080
-Database URL: jdbc:mysql://localhost:3306/todo_list_db
+URL: jdbc:mysql://localhost:3306/todo_list_db
 Username: root
 Password: empty
 ```
 
 If your MySQL password is not empty:
 
-```bash
-set DB_PASSWORD=root
+```powershell
+$env:DB_PASSWORD="root"
 mvn spring-boot:run
-```
-
-If you use the Docker MySQL service from this project:
-
-```bash
-set DB_URL=jdbc:mysql://localhost:3307/todo_list_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-set DB_PASSWORD=root
-mvn spring-boot:run
-```
-
-Swagger UI:
-
-```txt
-http://localhost:8080/swagger-ui.html
-```
-
-OpenAPI JSON:
-
-```txt
-http://localhost:8080/api-docs
 ```
 
 Run frontend:
 
-```bash
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Frontend URL:
+Frontend dev server:
 
 ```txt
 http://localhost:5173
 ```
 
-Optional frontend env:
-
-```bash
-copy .env.example .env
-```
-
-## Run Tests
-
-Backend:
-
-```bash
-cd backend
-mvn test
-```
-
-Frontend build check:
-
-```bash
-cd frontend
-npm run build
-```
-
-## API Summary
+## API
 
 Base URL:
 
@@ -232,22 +157,28 @@ Base URL:
 http://localhost:8080/api
 ```
 
-| Method | Endpoint | Description |
+| Method | Endpoint | Purpose |
 | --- | --- | --- |
-| GET | `/tasks` | List tasks |
+| GET | `/tasks` | List tasks with search, filter, pagination and sorting |
 | GET | `/tasks/{id}` | Get one task |
-| POST | `/tasks` | Create task |
-| PUT | `/tasks/{id}` | Update task |
+| POST | `/tasks` | Create a task |
+| PUT | `/tasks/{id}` | Update a task |
 | PATCH | `/tasks/{id}/status` | Set task status |
 | PATCH | `/tasks/{id}/toggle` | Toggle task status |
-| DELETE | `/tasks/{id}` | Delete task |
+| DELETE | `/tasks/{id}` | Delete a task |
 
-Example create request:
+List query example:
+
+```txt
+GET /api/tasks?keyword=readme&status=PENDING&page=0&size=8&sort=createdAt,desc
+```
+
+Create request example:
 
 ```json
 {
   "title": "Write README",
-  "description": "Document setup steps",
+  "description": "Add setup steps and API notes",
   "priority": "HIGH",
   "dueDate": "2026-07-07"
 }
@@ -255,7 +186,7 @@ Example create request:
 
 ## Postman
 
-Import:
+Import this file into Postman:
 
 ```txt
 postman/Todo_List_Management_API.postman_collection.json
@@ -268,25 +199,26 @@ baseUrl = http://localhost:8080
 taskId = 1
 ```
 
-## Design Notes
+## Tests
 
-See [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md).
+Backend unit tests:
 
-Key decisions:
+```powershell
+cd backend
+mvn test
+```
 
-- Use REST API to separate backend and frontend clearly.
-- Use DTOs for request and response objects.
-- Use service layer for business logic and normalization.
-- Use JPA Specification for flexible search and filters.
-- Use Flyway for repeatable database schema creation.
-- Use Swagger and Postman to make reviewer testing faster.
+Frontend build check:
 
-## Submission Checklist
+```powershell
+cd frontend
+npm run build
+```
 
-- Source code included.
-- README included.
-- Swagger enabled.
-- Postman collection included.
-- Database schema included.
-- System design included.
-- GitHub repository ready.
+## Notes
+
+- The app uses DTOs instead of exposing JPA entities directly through the API.
+- Validation errors are returned in a consistent JSON format.
+- `database/schema.sql` is kept for manual review; the running app uses Flyway
+  migrations from `backend/src/main/resources/db/migration`.
+- More design details are in `docs/SYSTEM_DESIGN.md`.

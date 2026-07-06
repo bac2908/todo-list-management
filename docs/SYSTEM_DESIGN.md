@@ -1,174 +1,139 @@
-# System Design
+# Technical Notes
 
-## 1. Goal
+This file explains the current design of the Todo List app. It is not meant to
+be a big architecture document; it is just the main reasoning behind the code.
 
-Build a small but complete Todo List Management application that demonstrates:
-
-- Java OOP and layered backend design.
-- REST API design with validation and clear error responses.
-- MySQL persistence with migration scripts.
-- React component structure and API integration.
-- Practical handling of edge cases, not only basic CRUD.
-
-## 2. High Level Architecture
+## Overview
 
 ```txt
-React Client
+React UI
   |
-  | HTTP/JSON
+  | HTTP / JSON
   v
 Spring Boot REST API
   |
   | Spring Data JPA
   v
-MySQL Database
+MySQL
 ```
 
-## 3. Backend Layers
+The frontend and backend are separated because it keeps the API testable with
+Swagger/Postman and makes the React side easier to change later.
+
+## Backend
+
+The backend follows a small layered structure:
 
 ```txt
-TaskController
-  - Receives HTTP requests
-  - Validates request bodies
-  - Returns proper HTTP status codes
-
-TaskService
-  - Contains business logic
-  - Normalizes input
-  - Handles status transitions
-  - Throws domain exceptions
-
-TaskRepository
-  - Persists Task entities
-  - Supports search, filter, pagination, and sorting
-
-Task Entity
-  - Maps the tasks table
-  - Owns core task fields and timestamps
+TaskController -> TaskService -> TaskRepository -> MySQL
 ```
 
-## 4. Frontend Structure
+`TaskController`
+
+- Receives HTTP requests.
+- Lets Bean Validation check request bodies.
+- Returns the right status codes for create, update and delete actions.
+
+`TaskService`
+
+- Keeps the main task rules in one place.
+- Trims user input before saving.
+- Handles status updates and toggle logic.
+- Throws `ResourceNotFoundException` when a task id does not exist.
+
+`TaskRepository`
+
+- Extends Spring Data JPA.
+- Uses `JpaSpecificationExecutor` so search and filters can be combined without
+  creating many custom query methods.
+
+DTO classes are used for request and response data. The entity stays focused on
+database mapping, while the API shape can still change if needed.
+
+## Frontend
+
+The React app is split into a few small components:
 
 ```txt
 App
-  - Owns task page state
-  - Calls API client
-  - Coordinates filters, form, list, and pagination
-
 TaskForm
-  - Creates and updates tasks
-  - Performs basic client-side validation
-
 TaskFilters
-  - Keyword search
-  - Status filter
-  - Priority filter
-
 TaskList / TaskItem
-  - Displays task states
-  - Triggers edit, delete, and status toggle
-
 Pagination
-  - Navigates backend paginated results
+api/tasks.js
 ```
 
-## 5. Database Model
+`App` owns the page state: filters, current page, editing task, loading state
+and messages. The smaller components only handle their part of the screen.
+
+The frontend calls `GET /api/tasks` again after create, update, delete and
+status toggle. This is simple and keeps the screen in sync with the database.
+Due date badges are calculated in the UI because they depend on the current
+day of the user opening the app.
+
+## Database
 
 Table: `tasks`
 
 | Column | Type | Note |
 | --- | --- | --- |
-| id | BIGINT | Primary key, auto increment |
+| id | BIGINT | Primary key |
 | title | VARCHAR(120) | Required |
 | description | VARCHAR(500) | Optional |
-| status | VARCHAR(20) | PENDING or COMPLETED |
-| priority | VARCHAR(20) | LOW, MEDIUM, HIGH |
+| status | VARCHAR(20) | `PENDING` or `COMPLETED` |
+| priority | VARCHAR(20) | `LOW`, `MEDIUM`, `HIGH` |
 | due_date | DATE | Optional |
-| created_at | TIMESTAMP | Created timestamp |
-| updated_at | TIMESTAMP | Updated timestamp |
+| created_at | TIMESTAMP | Created time |
+| updated_at | TIMESTAMP | Last updated time |
 
-Indexes:
+Flyway is used so the table can be created automatically on a fresh database.
+The manual SQL files in `database/` are kept for easier review and demo data.
 
-- `status` for status filter.
-- `priority` for priority filter.
-- `due_date` for future sorting or dashboard.
-- `created_at` for default ordering.
+## API Notes
 
-## 6. API Contract
+Base URL:
 
-Base URL: `http://localhost:8080/api`
+```txt
+http://localhost:8080/api
+```
 
-| Method | Endpoint | Purpose |
+| Method | Endpoint | Note |
 | --- | --- | --- |
-| GET | `/tasks` | List tasks with search, filter, pagination, and sorting |
+| GET | `/tasks` | Search, filter, paginate and sort |
 | GET | `/tasks/{id}` | Get one task |
-| POST | `/tasks` | Create a task |
-| PUT | `/tasks/{id}` | Update a task |
-| PATCH | `/tasks/{id}/status` | Mark task as PENDING or COMPLETED |
-| PATCH | `/tasks/{id}/toggle` | Toggle task status |
-| DELETE | `/tasks/{id}` | Delete a task |
+| POST | `/tasks` | Create task |
+| PUT | `/tasks/{id}` | Update task |
+| PATCH | `/tasks/{id}/status` | Set exact status |
+| PATCH | `/tasks/{id}/toggle` | Switch pending/completed |
+| DELETE | `/tasks/{id}` | Delete task |
 
-List query parameters:
+Supported list params:
 
-| Param | Example | Note |
-| --- | --- | --- |
-| keyword | `readme` | Searches title and description |
-| status | `PENDING` | Optional |
-| priority | `HIGH` | Optional |
-| page | `0` | Zero-based page index |
-| size | `8` | Page size |
-| sort | `createdAt,desc` | Spring Pageable sort syntax |
+| Param | Example |
+| --- | --- |
+| keyword | `readme` |
+| status | `PENDING` |
+| priority | `HIGH` |
+| page | `0` |
+| size | `8` |
+| sort | `createdAt,desc` |
 
-## 7. Main Flows
+## Validation And Errors
 
-### Create Task
+Handled cases include:
 
-```txt
-User submits form
-  -> React validates required title
-  -> POST /api/tasks
-  -> Spring validates DTO
-  -> Service trims title and description
-  -> Repository saves task
-  -> API returns 201 Created
-  -> React reloads first page
-```
-
-### Search And Filter
-
-```txt
-User changes keyword/status/priority
-  -> React updates query state
-  -> GET /api/tasks with query params
-  -> Service builds JPA Specification
-  -> Repository returns Page<Task>
-  -> React renders task cards and pagination
-```
-
-### Toggle Completion
-
-```txt
-User clicks status icon
-  -> PATCH /api/tasks/{id}/toggle
-  -> Service switches PENDING <-> COMPLETED
-  -> React refreshes current page
-```
-
-## 8. Validation And Error Handling
-
-Handled cases:
-
-- Empty task title.
+- Empty title.
 - Title longer than 120 characters.
 - Description longer than 500 characters.
 - Due date in the past.
+- Invalid enum value.
 - Invalid JSON request body.
-- Invalid enum values.
 - Task id not found.
-- Empty list and empty search result.
-- Backend request failure shown in the React UI.
+- Empty search result.
+- Network/API error on the frontend.
+- Due today, due soon and overdue states in the task list.
 
-Standard error response:
+Example error response:
 
 ```json
 {
@@ -183,21 +148,16 @@ Standard error response:
 }
 ```
 
-## 9. Why This Design Scores Well
+## Trade-offs
 
-- Clear separation of responsibilities.
-- DTOs protect the entity from direct API input.
-- Service layer contains business rules.
-- Repository layer keeps database access isolated.
-- Flyway migration makes database setup repeatable.
-- Swagger and Postman make API review easy.
-- React components are small and focused.
-- Pagination, sorting, search, filter, and responsive UI cover bonus items.
+Some things are intentionally kept small for this version:
 
-## 10. Future Improvements
+- No login or per-user task ownership.
+- No soft delete or activity history.
+- No online deployment yet.
+- Unit tests focus on service behavior first; more integration tests can be
+  added later with Testcontainers.
 
-- Add authentication and per-user task ownership.
-- Add integration tests with Testcontainers.
-- Add optimistic locking for concurrent updates.
-- Add task activity history.
-- Deploy backend and frontend online.
+The current version is enough to show CRUD, validation, pagination, API docs,
+Docker setup and a readable project structure without making the app bigger
+than the assignment needs.
