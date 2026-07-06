@@ -78,6 +78,7 @@ Table: `tasks`
 | Column | Type | Note |
 | --- | --- | --- |
 | id | BIGINT | Primary key |
+| version | BIGINT | Optimistic locking version |
 | title | VARCHAR(120) | Required |
 | description | VARCHAR(500) | Optional |
 | status | VARCHAR(20) | `PENDING` or `COMPLETED` |
@@ -155,8 +156,8 @@ Some things are intentionally kept small for this version:
 - No login or per-user task ownership.
 - No soft delete or activity history.
 - No online deployment yet.
-- Unit tests focus on service behavior first; more integration tests can be
-  added later with Testcontainers.
+- Tests cover the service, controller and repository layers; broader
+  integration tests can be added later with Testcontainers.
 
 The current version is enough to show CRUD, validation, pagination, API docs,
 Docker setup and a readable project structure without making the app bigger

@@ -65,7 +65,7 @@ class TaskControllerTest {
                                   "title": "   ",
                                   "description": "Invalid task",
                                   "priority": "HIGH",
-                                  "dueDate": "2026-07-07"
+                                  "dueDate": null
                                 }
                                 """))
                 .andExpect(status().isBadRequest())

@@ -4,7 +4,6 @@ TRUNCATE TABLE tasks;
 
 INSERT INTO tasks (version, title, description, status, priority, due_date)
 VALUES
-    (0, 'Prepare README', 'Write setup steps and API documentation', 'PENDING', 'HIGH', CURRENT_DATE),
     (0, 'Build task filters', 'Support keyword, status, and priority filters', 'COMPLETED', 'MEDIUM', CURRENT_DATE),
     (0, 'Test validation cases', 'Check empty title, long title, and invalid due date', 'PENDING', 'MEDIUM', CURRENT_DATE + INTERVAL 2 DAY),
     (0, 'Create Postman collection', 'Add examples for create, update, toggle, delete, and list APIs', 'COMPLETED', 'HIGH', CURRENT_DATE + INTERVAL 1 DAY),

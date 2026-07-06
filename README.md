@@ -25,6 +25,20 @@ that reviewers usually check easy to run and easy to read.
 - Show loading, empty, success and error states.
 - Responsive layout for desktop and smaller screens.
 
+## Screenshots
+
+### Todo List App
+
+![Todo List app overview](docs/images/app-overview.png)
+
+### Task List And Pagination
+
+![Task list and pagination](docs/images/app-task-list.png)
+
+### Swagger API
+
+![Swagger API documentation](docs/images/swagger-api.png)
+
 ## Project Structure
 
 ```txt
@@ -32,27 +46,104 @@ todo-list-management/
   backend/                 Spring Boot REST API
   frontend/                React application
   database/                Manual SQL and demo seed data
-  docs/                    Short technical notes
+  docs/                    Technical notes and screenshots
   postman/                 Postman collection
   docker-compose.yml       MySQL + backend + frontend
 ```
 
+## Requirements
+
+For the Docker setup:
+
+- Docker Desktop
+- Java 21
+- Maven 3.9+
+
+For local frontend development:
+
+- Node.js 20+
+
+The recommended way to review this project is Docker because it starts MySQL,
+the Spring Boot API and the React app with the same configuration.
+
 ## Run With Docker
 
-Start Docker Desktop first.
+Start Docker Desktop first and wait until it shows that Docker is running.
 
-The backend image copies the jar from `backend/target`, so build it once before
-starting Docker Compose:
+From the project root:
+
+```powershell
+cd D:\todo-list-management
+```
+
+### 1. Build The Backend Jar
+
+The backend Docker image copies the jar from `backend/target`, so build the jar
+before running Docker Compose:
 
 ```powershell
 cd backend
 $env:MAVEN_OPTS="-Xmx256m -XX:MaxMetaspaceSize=160m"
 mvn -DskipTests clean package
 cd ..
+```
+
+This creates:
+
+```txt
+backend/target/todo-list-backend-0.0.1-SNAPSHOT.jar
+```
+
+### 2. Start MySQL, Backend And Frontend
+
+```powershell
 docker compose up --build -d
 ```
 
-Open:
+If PowerShell does not recognize `docker compose`, try:
+
+```powershell
+docker.exe compose up --build -d
+```
+
+Docker Compose starts these services:
+
+| Service | Container | Port | Purpose |
+| --- | --- | --- | --- |
+| mysql | `todo-list-mysql` | `3307:3306` | MySQL database |
+| backend | `todo-list-backend` | `8080:8080` | Spring Boot REST API |
+| frontend | `todo-list-frontend` | `3000:80` | React app served by Nginx |
+
+Check that all services are running:
+
+```powershell
+docker compose ps
+```
+
+Expected result:
+
+```txt
+todo-list-mysql      Up / healthy
+todo-list-backend    Up
+todo-list-frontend   Up
+```
+
+### 3. Load Demo Data
+
+Flyway creates and migrates the `tasks` table automatically when the backend
+starts. When using Docker, do not run `database/schema.sql` manually; keep it as
+a reference script for local review.
+
+To load demo tasks for checking search, deadline badges and pagination:
+
+```powershell
+Get-Content -Raw database\seed.sql | docker exec -i todo-list-mysql mysql -uroot -proot todo_list_db
+```
+
+The seed file inserts 17 tasks. The frontend requests 8 tasks per page, so
+pagination shows `Page 1 of 3`.
+
+### 4. Open The App
 
 ```txt
 Frontend:   http://localhost:3000
@@ -62,7 +153,7 @@ OpenAPI:    http://localhost:8080/api-docs
 MySQL:      localhost:3307
 ```
 
-Useful commands:
+### 5. Useful Docker Commands
 
 ```powershell
 docker compose ps
@@ -72,24 +163,17 @@ docker compose logs -f mysql
 docker compose down
 ```
 
-Reset all Docker data:
+Reset all Docker containers and database volume:
 
 ```powershell
 docker compose down -v
 ```
 
-## Demo Data
-
-Flyway creates and migrates the `tasks` table automatically when the backend
-starts. When using Docker, do not run `database/schema.sql` manually; keep it as
-a reference script for local review. To load demo tasks for checking pagination:
+Then start again:
 
 ```powershell
-Get-Content -Raw database\seed.sql | docker exec -i todo-list-mysql mysql -uroot -proot todo_list_db
+docker compose up --build -d
 ```
-
-The seed file inserts 18 tasks. The frontend requests 8 tasks per page, so the
-pagination can be tested right away.
 
 Docker database connection:
 
@@ -101,9 +185,31 @@ Backend host: mysql:3306
 Local host: localhost:3307
 ```
 
+### Docker Troubleshooting
+
+If the backend container fails because the jar does not exist, run:
+
+```powershell
+cd backend
+$env:MAVEN_OPTS="-Xmx256m -XX:MaxMetaspaceSize=160m"
+mvn -DskipTests clean package
+cd ..
+docker compose up --build -d
+```
+
+If ports are already used, stop the app using those ports or change the port
+mapping in `docker-compose.yml`.
+
+If the UI opens but the list is empty, import the seed data again:
+
+```powershell
+Get-Content -Raw database\seed.sql | docker exec -i todo-list-mysql mysql -uroot -proot todo_list_db
+```
+
 ## Run Locally
 
-Use this option if MySQL is already running on your machine.
+Use this option if MySQL is already running on your machine. Docker is still the
+recommended review path because it avoids local MySQL configuration differences.
 
 Create the database:
 
@@ -131,6 +237,15 @@ Password: empty
 If your MySQL password is not empty:
 
 ```powershell
+$env:DB_PASSWORD="root"
+mvn spring-boot:run
+```
+
+If you want to run the backend locally but use the Docker MySQL service:
+
+```powershell
+$env:DB_URL="jdbc:mysql://localhost:3307/todo_list_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh"
+$env:DB_USERNAME="root"
 $env:DB_PASSWORD="root"
 mvn spring-boot:run
 ```
@@ -180,9 +295,11 @@ Create request example:
   "title": "Write README",
   "description": "Add setup steps and API notes",
   "priority": "HIGH",
-  "dueDate": "2026-07-07"
+  "dueDate": null
 }
 ```
+
+Use today or a future date for `dueDate` when you want to test deadline badges.
 
 ## Postman
 
