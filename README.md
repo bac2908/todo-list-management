@@ -56,11 +56,11 @@ todo-list-management/
 For the Docker setup:
 
 - Docker Desktop
+
+For local development without Docker:
+
 - Java 21
 - Maven 3.9+
-
-For local frontend development:
-
 - Node.js 20+
 
 The recommended way to review this project is Docker because it starts MySQL,
@@ -76,29 +76,18 @@ From the project root:
 cd D:\todo-list-management
 ```
 
-### 1. Build The Backend Jar
-
-The backend Docker image copies the jar from `backend/target`, so build the jar
-before running Docker Compose:
-
-```powershell
-cd backend
-$env:MAVEN_OPTS="-Xmx256m -XX:MaxMetaspaceSize=160m"
-mvn -DskipTests clean package
-cd ..
-```
-
-This creates:
-
-```txt
-backend/target/todo-list-backend-0.0.1-SNAPSHOT.jar
-```
-
-### 2. Start MySQL, Backend And Frontend
+### 1. Start MySQL, Backend And Frontend
 
 ```powershell
 docker compose up --build -d
 ```
+
+The backend Dockerfile uses a multi-stage build. Docker builds the Spring Boot
+jar inside the image first, then copies only the final jar into a small runtime
+image. You do not need to run `mvn package` before Docker.
+
+The first build can take a few minutes because Docker downloads Maven and npm
+dependencies.
 
 If PowerShell does not recognize `docker compose`, try:
 
@@ -128,7 +117,7 @@ todo-list-backend    Up
 todo-list-frontend   Up
 ```
 
-### 3. Load Demo Data
+### 2. Load Demo Data
 
 Flyway creates and migrates the `tasks` table automatically when the backend
 starts. When using Docker, do not run `database/schema.sql` manually; keep it as
@@ -143,7 +132,7 @@ Get-Content -Raw database\seed.sql | docker exec -i todo-list-mysql mysql -uroot
 The seed file inserts 17 tasks. The frontend requests 8 tasks per page, so
 pagination shows `Page 1 of 3`.
 
-### 4. Open The App
+### 3. Open The App
 
 ```txt
 Frontend:   http://localhost:3000
@@ -153,7 +142,7 @@ OpenAPI:    http://localhost:8080/api-docs
 MySQL:      localhost:3307
 ```
 
-### 5. Useful Docker Commands
+### 4. Useful Docker Commands
 
 ```powershell
 docker compose ps
@@ -186,16 +175,6 @@ Local host: localhost:3307
 ```
 
 ### Docker Troubleshooting
-
-If the backend container fails because the jar does not exist, run:
-
-```powershell
-cd backend
-$env:MAVEN_OPTS="-Xmx256m -XX:MaxMetaspaceSize=160m"
-mvn -DskipTests clean package
-cd ..
-docker compose up --build -d
-```
 
 If ports are already used, stop the app using those ports or change the port
 mapping in `docker-compose.yml`.
